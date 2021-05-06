@@ -4,18 +4,27 @@ const bcrypt = require('bcryptjs')
 const Userschema = new mongoose.Schema({
     name: {
         type: String,
-        require: true,
+        required: true,
+        minLength: [3, 'The Name must be at least three characters']
+    },
+    username: {
+        type: String,
+        unique: true,
+        required: [true, 'Username required'],
+        lowercase: true,
+        minLength: [3, 'The Name must be at least three characters']
     },
     email: {
         type: String,
         unique: true,
-        require: true,
+        required: true,
         lowercase: true,
-    },
+    }, 
     password: {
         type: String,
-        require: true,
-        select: false
+        required: true,
+        select: false,
+        minLength: [3, 'The Password must be at least three characters']
     },
     passwordResetToken: {
         type: String,
@@ -27,9 +36,22 @@ const Userschema = new mongoose.Schema({
     },
     createdAt: {
         type: Date,
-        require: Date.now,
+        default: Date.now,
     },
 })
+
+Userschema.post('save', function(error, doc, next) {
+
+    const message = error.errors
+ 
+    for (const key in message) {
+        let name = key
+        if (error) {   
+            next( message[name].message ) 
+        } 
+    }
+    next()
+});
 
 Userschema.pre('save', async function(next) {
     const hash = await bcrypt.hash(this.password, 8)

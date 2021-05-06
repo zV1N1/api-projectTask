@@ -1,43 +1,22 @@
 const Project = require('../models/project')
-const Task = require('../models/task')
+const User = require('../models/user')
 
-exports.store = async (req, res) => {
-    try {
-        const { title, description, tasks } = req.body
-
-        const project = await Project.create({
-            title, description,
-            user: req.userId 
-        })
-
-        await Promise.all(tasks.map(async task => {
-            const projectTask = new Task({ ...task, project: project._id})
-            
-            await projectTask.save()
-
-            project.tasks.push(projectTask)
-        }))
-
-        // update task in project
-        await project.save()
-
-        return res.send({ project })
-
-    } catch (e) {
-        return res.status(400).send({ error: 'Error creating new project' })
-    }
-}
 
 exports.index = async (req, res) => {
     try {
-        const projects = await Project.find().populate('user')
+        const projects = await Project.find({ 
+            $or:[
+                {admin: req.userId},
+                {users: req.userId}
+            ]
+        })
 
         return res.send({ projects })
-
     } catch (e) {
         return res.status(400).send({ error: 'Error loading projects' })
     }
 }
+
 
 exports.show = async (req, res) => {
     try {
@@ -50,46 +29,96 @@ exports.show = async (req, res) => {
     } catch (e) {
         return res.status(400).send({ error: 'Error loading project' })
     }
+} 
+
+exports.store = async (req, res) => {
+    try {
+        const { title, description } = req.body
+
+
+        const project = await Project.create({
+            title, description,
+            admin: req.userId,
+        })
+
+        return res.send({ project })
+
+    } catch (err) {
+        return res.status(400).send({ error: err })
+    }
 }
 
 exports.update = async (req, res) => {
     try {
-        const { title, description, tasks } = req.body
+        const { title, description } = req.body
 
-        const project = await Project.findByIdAndUpdate(req.params.id, {
-            title, 
-            description,
-        }, { new: true })
+        const project = await Project.findById(req.params.id)
+        
+        const isAdmin = project.admin == req.userId
+        
+        if (!isAdmin) {
+            return res.status(400).send({ error: 'You are not admin' })
+        }
 
-        project.tasks = []
-        await Task.remove({ project: project_id })
+        project.title = title 
+        project.description = description
 
-        await Promise.all(tasks.map(async task => {
-            const projectTask = new Task({ ...task, project: project._id})
-            
-            await projectTask.save()
+        const projectUpdated = await project.save()
+        
+        return res.send({ projectUpdated })
 
-            project.tasks.push(projectTask)
-        }))
-
-        await project.save()
-
-        return res.send('Updated Successfully')
-
-    } catch (e) {
-        return res.status(400).send({ error: 'Error updating project' })
+    } catch (err) {
+        return res.status(400).send({ error: err })
     }
 }
 
 exports.delete = async (req, res) => {
     try {
-        await Project.findByIdAndRemove(
-            req.params.id
-        )
 
-        return res.status(200).send('Successfully!!')
+        const project = await Project.findById(req.params.id)
+        
+        const isAdmin = project.admin == req.userId
+        
+        if (!isAdmin) {
+            return res.status(400).send({ error: 'You are not admin' })
+        }
+     
+        const current = await project.remove()
 
-    } catch (e) {
+        return res.status(200).send({ current })
+
+    } catch (err) {
         return res.status(400).send({ error: 'Error deleting project' })
     }
 }
+
+
+exports.addUser = async (req, res) => {
+    try {
+        const { username } = req.body
+
+        const userExists = await User.findOne({ username })
+        
+        if (!userExists) {
+            return res.status(400).send({ error: 'User does not exist!' })
+        }
+    
+        const existsInProject = await Project.findOne({ users: userExists })
+
+        if (existsInProject) {
+            return res.status(400).send({ error: 'User already exists in the project!' })
+        }
+
+        const project = await Project.findById(req.params.id)
+
+        project.users.push(userExists) 
+
+        await project.save()
+
+        return res.send({ project })
+        //return res.send('User adding with success')
+    } catch (err) {
+        res.status(400).send({ error:  'Error in adding users' })
+    }
+}
+

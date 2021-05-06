@@ -4,26 +4,45 @@ const crypt = require('crypto')
 const sendEmail = require('../services/mailer')
 
 const authConfig = require('../config/auth.json')
-const User = require('../models/User')
+const User = require('../models/user')
 
+
+exports.index = async (req, res) => {
+    try {
+        const users = await User.find({})
+
+        return res.send({ users })
+
+    } catch(err) {
+        return res.status(400).send('Error!')
+    }
+}
 
 exports.store = async (req, res) => {
-    const { email } = req.body
+    const { email, username } = req.body
     try {
-        const userAlreadyExists = await User.findOne({
+        const emailAlreadyExists = await User.findOne({
             email,
         })
-        if (userAlreadyExists) {
-            return res.status(400).send({ error: 'User already exists' })
+        if (emailAlreadyExists) {
+            return res.status(400).send({ error: 'Email already exists' })
         }
-        
+
+        const userAlreadyExists = await User.findOne({
+            username,
+        })
+        if (userAlreadyExists) {
+            return res.status(400).send({ error: 'Username already exists' })
+        }
+    
         const user = await User.create(req.body)
+        
         user.password = undefined
 
         return res.send({ user })
 
     } catch (err) {
-        res.status(400).send({ error: 'Registration failed' })
+        return res.status(400).send({ error: err })
         
     }   
 }
@@ -117,3 +136,6 @@ exports.reset_password = async (req, res) => {
         res.status(400).send({ error: 'Cannot reset password, try again' })
     }
 }
+
+
+

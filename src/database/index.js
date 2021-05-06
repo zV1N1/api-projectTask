@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 
-mongoose.connect('mongodb://localhost/nodeApi', {
+mongoose.connect('mongodb://localhost/projectTask', {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useCreateIndex: true

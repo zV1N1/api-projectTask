@@ -3,26 +3,33 @@ const mongoose = require('../database')
 const TaskSchema = new mongoose.Schema({
     title: {
         type: String,
-        require: true,
+        required: true,
+        minLength: [3, 'The Title must be at least three characters'],
+        maxLength: [40, 'Maximum 40 characters']
     },
-    project: {
+    projectId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Project',
-        require: true,
+        required: true,
+    },
+    description: {
+        type: String,
+        required: true,
+        minLength: [3, 'The Description must be at least three characters']
     },
     assignedTo: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        require: true,
+        required: true,
     },
     completed: {
         type: Boolean,
-        require: true,
+        required: true,
         default: false,
     },
     createdAt: {
         type: Date,
-        require: Date.now,
+        default: Date.now,
     },
 })
 
