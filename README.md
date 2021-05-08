@@ -20,7 +20,6 @@
 - Javascript
 - Express
 - bcryptjs
-- bootstramp
 - Nodemailer
 - MongoDB
 - Mongoose
